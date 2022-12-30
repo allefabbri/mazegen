@@ -79,82 +79,10 @@ def mazebfs(adlist, start, end):
     # log.debug(f'bfs took {tmetric}')
     return admaze, path, route
 
-def mazebfs2(adlist, start, end):
-    tmetric = datetime.now()
-    log = logging.getLogger('mazebfs')
-
-    if start not in adlist:
-        raise Exception(f'Start {start} not in adlist')
-    else:
-        if not len(adlist[start]):
-            raise Exception(f'Start {start} not connected')
-
-    if end not in adlist:
-        raise Exception(f'End {end} not in adlist')
-    else:
-        if not len(adlist[end]):
-            raise Exception(f'End {end} not in connected')
-
-    # BFS iterative version
-    # implemented with queue
-    Q = deque()
-    visited = set()
-    path = []
-    found = False
-    Q.append(start)
-    while Q:
-        current = Q.popleft()
-        visited.add(current)
-        while True:
-            available = [ c for c in adlist[current] if c not in visited ]
-            if len(available):
-                idx = int(np.random.rand() * len(available) )
-                newpos = available[idx]
-                path.append([ current, newpos ])
-                visited.add(newpos)
-
-                if newpos == end:
-                    found = True
-                    break
-
-                Q.append(newpos)
-                current = newpos
-            else:
-                break
-
-    # collect route to end
-    if found:
-        try:
-            routeidx = path.index([ i for i in path if i[1] == end ][0])
-            route = [path[routeidx]]
-            while path[routeidx][0] != start:
-                routeidx = path.index([ i for i in path if i[1] == path[routeidx][0] ][0])
-                route.append(path[routeidx])
-        except Exception as e:
-            log.error(f'Error in collect route : {e}')
-            route = []
-    else:
-        raise Exception(f'Path {start} {end} not found')
-
-    # compute maze adjacency list
-    admaze = { (i,j):set() for i,j in adlist }
-
-    try:
-        for (x1,y1),(x2,y2) in path:
-            admaze[(x1,y1)].add((x2,y2))
-            admaze[(x2,y2)].add((x1,y1))
-    except Exception as e:
-        raise Exception(f'Error in collect path : {e}')
-
-    tmetric = datetime.now() - tmetric
-    log.debug(f'bfs took {tmetric}')
-    return admaze, path, route
-
 ## MAZE DRAWER
 class MazeDrawer():
 
-    def __init__(self, disable_uniq=False, show_id=False, outdir='mazes', **kwargs):
-        self.disable_uniq = disable_uniq
+    def __init__(self, show_id=False, outdir='mazes', **kwargs):
         self.outdir = outdir
         os.makedirs(outdir, exist_ok=True)
         self.figsize = (10,10)
@@ -201,11 +129,6 @@ class MazeDrawer():
         if suffix == '': suffix = '-labyrinth'
         outfiles = [ f for f in outfiles if suffix in f ]
 
-        # if len(outfiles) and not self.disable_uniq:
-        #     outfiles = sorted(outfiles)
-        #     mid = int(outfiles[-1].split('-')[3]) + 1
-        # else:
-        #     mid = 0
         mid = self.npseed
         outfile += f'-{mid:04d}{suffix}.png'
 
@@ -219,9 +142,6 @@ class MazeDrawer():
         stack = set()
         for p1 in self.adlist:
             [(x1,y1)] = self.get_coords(p1)
-
-            # display points
-            # ax.scatter(x1, y1, color='blue')
 
             if self.show_id and debug:
                 ax.text(x1, y1 + 0.2, f'{p1}', bbox=dict(facecolor='white', edgecolor='black'), ha='center', zorder=300)

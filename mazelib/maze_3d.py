@@ -15,6 +15,7 @@ class TridiMaze(AbstractMaze):
     def __init__(self, w, h, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.log = logging.getLogger(self.__class__.__name__)
+        self.figsize = (10,3)
         self.w = w
         self.h = h
         self.d = d = 3
@@ -65,9 +66,6 @@ class TridiMaze(AbstractMaze):
         axis = [ fig.add_subplot(1,d,z+1) for z in range(d) ]
 
         for p1 in self.adlist:
-            # if self.show_id and debug:
-            #     x1,y1,z1 = self.points[i1,j1,k1,:]
-            #     ax.text(x1, y1 + 0.2, f'{(i1,j1,k1)}', bbox=dict(facecolor='white', edgecolor='black'), ha='center', zorder=300)
 
             for p2 in self.adlist[p1]:
                 if debug:
@@ -82,11 +80,8 @@ class TridiMaze(AbstractMaze):
             if p1[2] != p2[2]:
                 axis = self.smart_draw_link(p1, p2, axis, color='black', marker=None)
 
-            # if (i2,j2) not in self.admaze[(i1,j1)]:
-            #     if len(self.admaze[(i1,j1)]):
-            #         ax = self.smart_draw_wall((i1,j1), (i2,j2), ax)
-
         if debug:
+            fig.suptitle(f'Size {self.w}x{self.h} Route Len {len(self.route)} Seed {self.npseed}')
 
             for p1 in self.madlist:
                 for p2 in self.madlist[p1]:
@@ -105,18 +100,15 @@ class TridiMaze(AbstractMaze):
                         axis = self.smart_draw_region(p, axis, color='green')
                         stack.add(p)
 
-
-        #ax = self.decorate(ax, w, h, route[0][-1], route[-1][0])
         axis = self.decorate(axis, debug)
-
-
 
         if show:
             plt.show()
         else:
             outfile = self.compose_filename(solve, debug)
             self.log.info(f'Saved : {outfile}')
-            plt.savefig(outfile, bbox_inches='tight', dpi=1000)
+            plt.tight_layout()
+            plt.savefig(outfile, bbox_inches='tight')
         plt.close()
 
     # draw utils

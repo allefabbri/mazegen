@@ -2,7 +2,7 @@ import argparse
 import logging
 import logging.config
 import coloredlogs
-import os, sys
+import os, sys, json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'mazelib'))
 from mazelib import MazeFactory
@@ -23,25 +23,31 @@ def init_log():
     logging.getLogger('matplotlib').setLevel(logging.WARNING)
     logging.getLogger('PIL').setLevel(logging.WARNING)
 
+def process_jobs(jobs):
+    for j in jobs:
+        maze = MazeFactory().get_maze(ttype, **j)
+        maze.create(minlen='auto')
+        maze.drawmaze(show=False, solve=False, debug=True)
+        maze.drawmaze(show=False, solve=False, debug=False)
+        maze.drawmaze(show=False, solve=True, debug=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-T', '--type', default='rect', choices=['rect', 'polar', 'voronoi', 'hex', '3d', 'cube'])
-    parser.add_argument('-W', '--w', default=5, type=int)
-    parser.add_argument('-H', '--h', default=5, type=int)
-    parser.add_argument('-D', '--debug', action='store_true')
-    parser.add_argument('-S', '--show', action='store_true')
-    parser.add_argument('-M', '--minlen', default=0, type=int)
-    parser.add_argument('-O', '--outdir', default='mazes')
+    parser.add_argument('-T', '--type', default='rect', choices=['rect', 'polar', 'voronoi', 'hex', '3d', 'cube'], help='Maze type selector')
+    parser.add_argument('-W', '--w', default=5, type=int, help='Maze width in cells')
+    parser.add_argument('-H', '--h', default=5, type=int, help='Maze height in cells')
+    parser.add_argument('-D', '--debug', action='store_true', help='Enable debug mode')
+    parser.add_argument('-S', '--show', action='store_true', help='Enable matplotlib graphical widget')
+    parser.add_argument('-M', '--minlen', default=0, type=int, help='Set maze route minimum length')
+    parser.add_argument('-O', '--outdir', default='mazes', help='Output directory')
 
-    parser.add_argument('-s', '--solve', action='store_true')
-    parser.add_argument('-sh', '--shapetype', default='', choices=['', 'L', 'O', 'H'])
-    parser.add_argument('-vb', '--voronoi-border', default=1, type=float)
-    parser.add_argument('-du', '--disable-uniq', action='store_true')
-    parser.add_argument('-si', '--show-id', action='store_true')
-    parser.add_argument('-se', '--seed', default=-1, type=int)
-    parser.add_argument('-dr', '--dry-run', action='store_true')
-    parser.add_argument('-m', '--mode', default='debug', choices=['debug', 'test', 'book'])
+    parser.add_argument('-s', '--solve', action='store_true', help='Enable solution generation, in combo with --show')
+    parser.add_argument('-sh', '--shapetype', default='', choices=['', 'L', 'O', 'H'], help='Select rectangular type obstacle shapes')
+    parser.add_argument('-pb', '--border-width', default=1, type=float, help='Set points random border width')
+    parser.add_argument('-si', '--show-id', action='store_true', help='Enable node id label, in combo with --debug')
+    parser.add_argument('-se', '--seed', default=-1, type=int, help='Set numpy random seed')
+    parser.add_argument('-dr', '--dry-run', action='store_true', help='Enable dry run: generate maze and disable png creation')
+    parser.add_argument('-m', '--mode', default='debug', help='Mode selector: debug|test|path/to/json')
 
     args = parser.parse_args()
     init_log()
@@ -50,9 +56,8 @@ if __name__ == '__main__':
         params = {
             'w': args.w,
             'h': args.h,
-            'border_width': args.voronoi_border,
+            'border_width': args.border_width,
             'outdir':args.outdir,
-            'disable_uniq':args.disable_uniq,
             'shapetype':args.shapetype,
             'show_id':args.show_id,
             'seed':args.seed,
@@ -133,53 +138,12 @@ if __name__ == '__main__':
                     tmp.update({'shapetype':sh})
                     jobs.append(tmp)
 
-            for j in jobs:
-                maze = MazeFactory().get_maze(ttype, **j)
-                maze.create(minlen=0)
-                maze.drawmaze(show=False, solve=False, debug=True)
-                maze.drawmaze(show=False, solve=False, debug=False)
-                maze.drawmaze(show=False, solve=True, debug=False)
-    elif m == 'book':
-        outdir = 'xmas'
-        data = [
-            [
-                'polar',
-                {
-                    'outdir': outdir,
-                    'w': 10,
-                    'h': 20,
-                },
-            ],
-            [
-                'rect',
-                {
-                    'outdir': outdir,
-                    'w': 20,
-                    'h': 20,
-                },
-            ],
-            [
-                'hex',
-                {
-                    'outdir': outdir,
-                    'w': 40,
-                    'h': 80,
-                },
-            ],
-            [
-                'voronoi',
-                {
-                    'outdir': outdir,
-                    'w': 50,
-                    'h': 50,
-                },
-            ]
-        ]
-        for ttype, tkwargs in data:
-            jobs = [ tkwargs ] * 5
-            for j in jobs:
-                maze = MazeFactory().get_maze(ttype, **j)
-                maze.create(minlen='auto')
-                maze.drawmaze(show=False, solve=False, debug=True)
-                maze.drawmaze(show=False, solve=False, debug=False)
-                maze.drawmaze(show=False, solve=True, debug=False)
+            process_jobs(jobs)
+    else:
+        try:
+            data = json.load(open(m))
+            for ttype, tkwargs in data:
+                jobs = [ tkwargs ] * 5
+                process_jobs(jobs)
+        except Exception as e:
+            print(f'Error in processing json file : {e}')
