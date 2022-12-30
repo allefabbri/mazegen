@@ -52,16 +52,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
     init_log()
 
+    params = {
+        'w': args.w,
+        'h': args.h,
+        'border_width': args.border_width,
+        'outdir':args.outdir,
+        'shapetype':args.shapetype,
+        'show_id':args.show_id,
+        'seed':args.seed,
+    }
+
     if (m:=args.mode) == 'debug':
-        params = {
-            'w': args.w,
-            'h': args.h,
-            'border_width': args.border_width,
-            'outdir':args.outdir,
-            'shapetype':args.shapetype,
-            'show_id':args.show_id,
-            'seed':args.seed,
-        }
         maze = MazeFactory().get_maze(args.type, **params)
         maze.create(args.minlen)
 
@@ -72,6 +73,10 @@ if __name__ == '__main__':
                 maze.drawmaze(show=False, solve=False, debug=True)
                 maze.drawmaze(show=False, solve=False, debug=False)
                 maze.drawmaze(show=False, solve=True, debug=False)
+    elif m == 'gif':
+        maze = MazeFactory().get_maze(args.type, **params)
+        maze.create(args.minlen)
+        maze.make_gif()
     elif m == 'test':
         npseed = 0
         testsuite = [

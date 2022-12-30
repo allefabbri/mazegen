@@ -2,6 +2,9 @@
 
 A simple python library to generate printable labyrinth.
 
+## Algorithm Visualization
+![maze algorithm](docs/algorithm.gif "Maze Algorithm")
+
 ## Rectangular Maze
 ![rectangular maze](docs/rect.png "Rectangular Maze")
 

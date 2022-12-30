@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib import animation, rc
 from collections import deque
 import random
 from datetime import datetime
@@ -243,6 +244,41 @@ class MazeDrawer():
             self.log.info(f'Saved : {outfile}')
             plt.savefig(outfile, bbox_inches='tight')
         plt.close()
+
+    def animate(self, i):
+        self.ax.clear()
+        self.ax.axis(False)
+        self.ax = self.decorate(self.ax)
+
+        wall_destroyed = set()
+        for k, (p1,p2) in enumerate(self.path[:i]):
+            self.ax = self.smart_draw_link(p1,p2,self.ax, color='red', linewidth=2)
+            wall_destroyed.add(tuple(sorted([p1,p2])))
+
+        for p1 in self.adlist:
+            for p2 in self.adlist[p1]:
+                if tuple(sorted([p1,p2])) not in wall_destroyed:
+                    self.ax = self.smart_draw_wall(p1,p2, self.ax)
+
+    def make_gif(self):
+        rc('animation', html='html5')
+
+        fig, ax = plt.subplots()
+
+        max_step = len(self.path) + 1
+        max_time = 10
+
+        self.ax = ax
+        anim = animation.FuncAnimation(
+            fig,
+            self.animate,
+            frames=max_step,
+            interval=1000*max_time/max_step,
+        )
+
+        outfile = self.compose_filename(False, False).replace('-labyrinth.png', '.gif')
+        anim.save(f'{outfile}', writer=animation.ImageMagickWriter(fps=max_step/max_time, extra_args=['-loop', '1']))
+
 
 ## ABSTRACT MAZE
 class AbstractMaze(MazeDrawer):
