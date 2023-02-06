@@ -2,11 +2,13 @@ import numpy as np
 import logging
 
 from mazelib import AbstractMaze
+from utils_stl import make_mesh, make_wall, axis3d
+from stl import mesh
 
 # RECT MAZE
 class CubeMaze(AbstractMaze):
 
-    def __init__(self, w=3, shapetype='', **kwargs):
+    def __init__(self, w=3, shapetype='', stl_do_wrap=True, **kwargs):
         super().__init__(**kwargs)
         self.log = logging.getLogger(self.__class__.__name__)
         self.w = w
@@ -74,23 +76,27 @@ class CubeMaze(AbstractMaze):
         self.start = (w,0)
         self.end = (2*w-1,3*w-1)#(w-1,w-1)
 
+        self.facesgrid = {
+            (0,2): 'L', # left
+            (1,0): 'T', # top
+            (1,1): 'F', # front
+            (1,2): 'D', # down
+            (1,3): 'B', # back
+            (2,2): 'R', # right
+        }
+        self.faces = { v:k for k,v in self.facesgrid.items() }
+        self.facewall = { k:[] for k in self.faces }
+        self.stl_do_wrap = stl_do_wrap
+
     def compute_wrap(self, p1, p2):
         p1, p2 = sorted([p1,p2])
         i1,j1 = p1
         i2,j2 = p2
 
-        facesgrid = {
-            (0,2): 'L',
-            (1,0): 'T',
-            (1,1): 'F',
-            (1,2): 'D',
-            (1,3): 'B',
-            (2,2): 'R',
-        }
         g1 = i1 // self.w, j1 // self.w
-        f1 = facesgrid[g1]
+        f1 = self.facesgrid[g1]
         g2 = i2 // self.w, j2 // self.w
-        f2 = facesgrid[g2]
+        f2 = self.facesgrid[g2]
 
         return f1 + f2
 
@@ -182,33 +188,72 @@ class CubeMaze(AbstractMaze):
         (x1,y1),(x2,y2) = self.get_coords(p1,p2)
         wrap = self.compute_wrap(p1,p2)
         if wrap == 'LT':
-            ax.plot((x1-0.5,x1-0.5),(y1-0.5,y1+0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2-0.5),(y2-0.5,y2+0.5), marker=None, color='black')
+            wx1, wy1, wx2, wy2 = x1-0.5, y1-0.5, x1-0.5, y1+0.5
+            self.facewall['L'].append([wx1, wy1, wx2, wy2])
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+
+            wx1, wy1, wx2, wy2 = x2-0.5, y2-0.5, x2-0.5, y2+0.5
+            self.facewall['T'].append([wx1, wy1, wx2, wy2])
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
         elif wrap == 'LB':
-            ax.plot((x1-0.5,x1+0.5),(y1+0.5,y1+0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2-0.5),(y2-0.5,y2+0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1-0.5,x1+0.5,y1+0.5,y1+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['L'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2-0.5,x2-0.5,y2-0.5,y2+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['B'].append([wx1, wy1, wx2, wy2])
         elif wrap == 'LF':
-            ax.plot((x1-0.5,x1+0.5),(y1-0.5,y1-0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2-0.5),(y2-0.5,y2+0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1-0.5,x1+0.5,y1-0.5,y1-0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['L'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2-0.5,x2-0.5,y2-0.5,y2+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['F'].append([wx1, wy1, wx2, wy2])
         elif wrap == 'TB':
-            ax.plot((x1-0.5,x1+0.5),(y1-0.5,y1-0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2+0.5),(y2+0.5,y2+0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1-0.5,x1+0.5,y1-0.5,y1-0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['T'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2-0.5,x2+0.5,y2+0.5,y2+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['B'].append([wx1, wy1, wx2, wy2])
         elif wrap == 'TR':
-            ax.plot((x1+0.5,x1+0.5),(y1-0.5,y1+0.5), marker=None, color='black')
-            ax.plot((x2+0.5,x2+0.5),(y2-0.5,y2+0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1+0.5,x1+0.5,y1-0.5,y1+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['T'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2+0.5,x2+0.5,y2-0.5,y2+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['R'].append([wx1, wy1, wx2, wy2])
         elif wrap == 'FR':
-            ax.plot((x1+0.5,x1+0.5),(y1-0.5,y1+0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2+0.5),(y2-0.5,y2-0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1+0.5,x1+0.5,y1-0.5,y1+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['F'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2-0.5,x2+0.5,y2-0.5,y2-0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['R'].append([wx1, wy1, wx2, wy2])
         elif wrap == 'BR':
-            ax.plot((x1+0.5,x1+0.5),(y1-0.5,y1+0.5), marker=None, color='black')
-            ax.plot((x2-0.5,x2+0.5),(y2+0.5,y2+0.5), marker=None, color='black')
+            wx1, wx2, wy1, wy2 = x1+0.5,x1+0.5,y1-0.5,y1+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['B'].append([wx1, wy1, wx2, wy2])
+
+            wx1, wx2, wy1, wy2 = x2-0.5,x2+0.5,y2+0.5,y2+0.5
+            ax.plot((wx1, wx2),(wy1,wy2), marker=None, color='black')
+            self.facewall['R'].append([wx1, wy1, wx2, wy2])
         elif wrap in ['LD', 'TF', 'FD', 'DB', 'DR'] or wrap[0] == wrap[1]:
             zc = (x1+x2)/2 + (y1+y2)/2 * 1j
             v = y1-y2 + (x2-x1)*1j
             v /= abs(v)
             w1 = zc + v * 1 / 2
             w2 = zc - v * 1 / 2
-            ax.plot((w1.real, w2.real), (w1.imag, w2.imag), marker=None, color='black')
+            wx1,wy1,wx2,wy2 = w1.real, w1.imag, w2.real, w2.imag
+            ax.plot((wx1, wx2), (wy1, wy2), marker=None, color='black')
+            self.facewall[wrap[0]].append([wx1, wy1, wx2, wy2])
+            if wrap[0] != wrap[1]:
+                self.facewall[wrap[1]].append([wx1, wy1, wx2, wy2])
         else:
             raise Exception(f'Unknown wall wrap {wrap}')
 
@@ -230,3 +275,57 @@ class CubeMaze(AbstractMaze):
     def __drawmaze(self, show, solve, debug):
         print('debug')
         self.drawmaze_debug(show, solve, debug)
+
+    def export_wall_stl(self, outfile='maze_walls.stl', scale=1, height=0.5):
+
+        facesdata = {}
+        for f, (x,y) in self.faces.items():
+            points = [
+                [ scale * self.w * x, scale * self.h * y, 0 ],
+                [ scale * self.w * x, scale * self.h * (y + 1), 0 ],
+                [ scale * self.w * (x + 1), scale * self.h * (y + 1), 0 ],
+                [ scale * self.w * (x + 1), scale * self.h * y, 0 ],
+            ]
+            facemesh = make_mesh(*points)
+            facemesh.translate([-scale*1/2, -scale*1/2, 0])
+
+            wallsmesh = []
+            for x1,y1,x2,y2 in self.facewall[f][:]:
+                # print(x1,y1,x2,y2)
+                walli = make_wall(scale*x1,scale*y1,scale*x2,scale*y2,-height)
+                wallsmesh.append(walli)
+
+            #facesdata[f] = facemesh.data.copy()
+            facesdata[f] = mesh.Mesh(np.concatenate([
+                facemesh.data.copy(),
+                *[ w.data.copy() for w in wallsmesh ]
+            ])).data.copy()
+
+        if self.stl_do_wrap:
+            for f, (x,y) in self.faces.items():
+                #print(f)
+                walli = mesh.Mesh(facesdata[f])
+                if f == 'L':
+                    walli.translate([scale * 0.5, 0.0, 0.0])
+                    walli.rotate(axis3d.y, np.radians(-90))
+                    walli.translate([scale * (self.w - 0.5), 0.0, scale * self.w])
+                elif f == 'R':
+                    walli.translate([- x * scale * self.w + scale * 0.5, 0.0, 0.0])
+                    walli.rotate(axis3d.y, np.radians(90))
+                    walli.translate([x * scale * self.w - scale * 0.5, 0.0, 0.0])
+                elif f == 'B':
+                    walli.translate([0.0, - y * scale * self.w + scale * 0.5, 0.0])
+                    walli.rotate(axis3d.x, np.radians(-90))
+                    walli.translate([0.0, y * scale * self.w - scale * 0.5, 0.0])
+                elif f == 'F':
+                    walli.translate([0.0, - y * scale * self.w + scale * 0.5, 0.0])
+                    walli.rotate(axis3d.x, np.radians(90))
+                    walli.translate([0.0, (y+1) * scale * self.w - scale * 0.5, scale * self.w])
+                elif f == 'T':
+                    walli.translate([0.0, - y * scale * self.w + scale * 0.5, 0.0])
+                    walli.rotate(axis3d.x, np.radians(180))
+                    walli.translate([0.0, 3 * scale * self.w - scale * 0.5, scale * self.w])
+
+        mwall = mesh.Mesh(np.concatenate(list(facesdata.values())))
+        mwall.translate([- self.w * 1.5 * scale + 0.5 * scale, - self.h * 2.5 * scale + 0.5 * scale, - self.w / 2 * scale])
+        mwall.save(outfile)

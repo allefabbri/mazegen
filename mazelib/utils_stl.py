@@ -1,6 +1,11 @@
 import numpy
 from stl import mesh
 
+class axis3d():
+  x = [0.5, 0, 0]
+  y = [0, 0.5, 0]
+  z = [0, 0, 0.5]
+
 def make_wall(x1,y1,x2,y2,h):
   data = numpy.zeros(2, dtype=mesh.Mesh.dtype)
   data['vectors'][0] = numpy.array([
@@ -16,12 +21,17 @@ def make_wall(x1,y1,x2,y2,h):
   wall = mesh.Mesh(data.copy())
   return wall
 
-
-def export_wall_stl(walls, outfile='maze_walls.stl', scale=1, height=0.5):
-  meshdata = []
-  for x1,y1,x2,y2 in walls:
-    walli = make_wall(scale*x1,scale*y1,scale*x2,scale*y2,height)
-    meshdata.append(walli.data.copy())
-
-  mwall = mesh.Mesh(numpy.concatenate(meshdata))
-  mwall.save(outfile)
+def make_mesh(p1,p2,p3,p4):
+  data = numpy.zeros(2, dtype=mesh.Mesh.dtype)
+  data['vectors'][0] = numpy.array([
+    p1,
+    p2,
+    p3,
+  ])
+  data['vectors'][1] = numpy.array([
+    p1,
+    p3,
+    p4,
+  ])
+  wall = mesh.Mesh(data.copy())
+  return wall

@@ -8,7 +8,8 @@ from glob import glob
 import logging
 import numpy as np
 
-from utils_stl import export_wall_stl
+from stl import mesh
+from utils_stl import make_mesh, make_wall
 
 ## MAZE BFS
 def mazebfs(adlist, start, end):
@@ -186,7 +187,7 @@ class MazeDrawer():
                 #ax.text((x1+x2)/2+0.1, (y1+y2)/2+0.1, f'{stepn}', bbox=dict(facecolor='white', edgecolor='black'), ha='center', zorder=300)
 
             if self.save_stl:
-                export_wall_stl(self.walls_data, outfile=outfile.replace('.png', '.stl'), scale=10, height=5)
+                self.export_wall_stl(outfile=outfile.replace('.png', '.stl'), scale=10, height=5)
 
         if solve:
 
@@ -286,6 +287,18 @@ class MazeDrawer():
         outfile = self.compose_filename(False, False).replace('-labyrinth.png', '.gif')
         anim.save(f'{outfile}', writer=animation.ImageMagickWriter(fps=max_step/max_time, extra_args=['-loop', '1']))
 
+    def export_wall_stl(self, outfile='maze_walls.stl', scale=1, height=0.5):
+        meshdata = []
+        for x1,y1,x2,y2 in self.walls_data:
+            if isinstance(x1, list):
+                p1, p2, p3, p4 = x1, y1, x2, y2
+                walli = make_mesh(p1,p2,p3,p4)
+            elif isinstance(x1, float):
+                walli = make_wall(scale*x1,scale*y1,scale*x2,scale*y2,height)
+            meshdata.append(walli.data.copy())
+
+        mwall = mesh.Mesh(np.concatenate(meshdata))
+        mwall.save(outfile)
 
 ## ABSTRACT MAZE
 class AbstractMaze(MazeDrawer):
