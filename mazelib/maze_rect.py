@@ -12,6 +12,10 @@ class RectMaze(AbstractMaze):
         self.w = w
         self.h = h
 
+        border = 1
+        w = w + 2 * border
+        h = h + 2 * border
+
         self.shape = self.make_shape(shapetype, w, h)
 
         points = np.random.rand(w,h,2) * (1-border_width) + border_width / 2
@@ -32,8 +36,9 @@ class RectMaze(AbstractMaze):
             (i,j-1),
         ] if pos in grid ] for i in range(w) for j in range(h) }
 
-        grid -= self.shape
-        madlist = { p1:set([ p2 for p2 in link if p2 in grid ]) if p1 in grid else set() for p1, link in adlist.items() }
+        mazegrid = set([ (i,j) for i in range(1,w-1) for j in range(1,h-1) ])
+        mazegrid -= self.shape
+        madlist = { p1:set([ p2 for p2 in link if p2 in mazegrid ]) if p1 in mazegrid else set() for p1, link in adlist.items() }
 
         self.l = 1
         self.mazetype = 'rect' + shapetype
@@ -41,8 +46,8 @@ class RectMaze(AbstractMaze):
         self.grid = grid
         self.adlist = adlist
         self.madlist = madlist
-        self.start = (0,0)
-        self.end = (w-1,h-1)
+        self.start = (1,1)
+        self.end = (w-2,h-2)
 
     # draw utils
     def decorate(self, ax):
@@ -54,12 +59,6 @@ class RectMaze(AbstractMaze):
 
         ax = self.smart_draw_region(self.start, ax, color='blue')
         ax = self.smart_draw_region(self.end, ax, color='red')
-
-        # add missing walls
-        ax.plot((0, self.w), (0, 0), marker=None, color='black')
-        ax.plot((0, self.w), (self.h, self.h), marker=None, color='black')
-        ax.plot((0, 0), (0, self.h), marker=None, color='black')
-        ax.plot((self.w, self.w), (0, self.h), marker=None, color='black')
 
         return ax
 
@@ -75,6 +74,10 @@ class RectMaze(AbstractMaze):
         w1 = zc + v * 1 / 2
         w2 = zc - v * 1 / 2
         ax.plot((w1.real, w2.real), (w1.imag, w2.imag), marker=None, color='black')
+
+        # for stl export
+        self.walls_data.append([w1.real, w1.imag, w2.real, w2.imag])
+
         return ax
 
     def smart_draw_region(self, p1, ax, color='blue', alpha=0.2):

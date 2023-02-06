@@ -96,6 +96,10 @@ class HexMaze(AbstractMaze):
         w1 = zc + v * self.l / 2
         w2 = zc - v * self.l / 2
         ax.plot((w1.real, w2.real), (w1.imag, w2.imag), marker=None, color='black')
+
+        # for stl export
+        self.walls_data.append([w1.real, w1.imag, w2.real, w2.imag])
+
         return ax
 
     def smart_draw_region(self, p1, ax, color='blue', alpha=0.2):

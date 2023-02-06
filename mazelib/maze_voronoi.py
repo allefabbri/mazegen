@@ -124,6 +124,10 @@ class VoronoiMaze(AbstractMaze):
         if len(self.vwalls[(i1,j1)][(i2,j2)]):
             x1,y1,x2,y2 = self.vwalls[(i1,j1)][(i2,j2)]
             ax.plot((x1,x2), (y1,y2), marker=None, color='black')
+
+            # for stl export
+            self.walls_data.append([x1,y1,x2,y2])
+
         return ax
 
     def smart_draw_region(self, p1, ax, color='green'):

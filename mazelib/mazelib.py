@@ -8,6 +8,8 @@ from glob import glob
 import logging
 import numpy as np
 
+from utils_stl import export_wall_stl
+
 ## MAZE BFS
 def mazebfs(adlist, start, end):
     # tmetric = datetime.now()
@@ -83,11 +85,13 @@ def mazebfs(adlist, start, end):
 ## MAZE DRAWER
 class MazeDrawer():
 
-    def __init__(self, show_id=False, outdir='mazes', **kwargs):
+    def __init__(self, show_id=False, outdir='mazes', save_stl=True, **kwargs):
         self.outdir = outdir
         os.makedirs(outdir, exist_ok=True)
         self.figsize = (10,10)
         self.show_id = show_id
+        self.save_stl = save_stl
+        self.walls_data = []
 
     def create(self, minlen):
         tmetric = datetime.now()
@@ -138,6 +142,7 @@ class MazeDrawer():
     def drawmaze(self, show, solve, debug):
         fig = plt.figure(figsize=self.figsize)
         ax = fig.add_subplot(1,1,1)
+        outfile = self.compose_filename(solve, debug)
 
         # loop over base grid adlist
         stack = set()
@@ -180,6 +185,9 @@ class MazeDrawer():
                 #(x1,y1),(x2,y2) = self.get_coords(p1,p2)
                 #ax.text((x1+x2)/2+0.1, (y1+y2)/2+0.1, f'{stepn}', bbox=dict(facecolor='white', edgecolor='black'), ha='center', zorder=300)
 
+            if self.save_stl:
+                export_wall_stl(self.walls_data, outfile=outfile.replace('.png', '.stl'), scale=10, height=5)
+
         if solve:
 
             stack = set()
@@ -200,7 +208,6 @@ class MazeDrawer():
         if show:
             plt.show()
         else:
-            outfile = self.compose_filename(solve, debug)
             self.log.info(f'Saved : {outfile}')
             plt.savefig(outfile, bbox_inches='tight')
         plt.close()
